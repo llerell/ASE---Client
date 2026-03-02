@@ -9,7 +9,7 @@ export function Grid(){
         {grid && grid.map((row, index) => (
             <div key={index}>{
                 row.map((cell, cellIndex) => (
-                    <span key={cellIndex}>{cell}</span>
+                    <span key={cellIndex} style={{backgroundColor: cell.color}}>{cell}</span>
                 ))
             }</div>
         ))}
