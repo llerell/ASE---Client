@@ -1,16 +1,22 @@
-import { useState } from 'react'
+import './grid.css'
 
 export function Grid({grid}){
-    // grid was fetched prior
+    if (grid.size === 0) {
+        return <div className="grid-empty">Click "Get grid" to load pixels</div>
+    }
+
     return(
-    <>
-        {grid && grid.map((row, index) => (
-            <div key={index}>{
-                row.map((cell, cellIndex) => (
-                    <span key={index + "-" + cellIndex} style={{backgroundColor: cell.color}}>{cell}</span>
-                ))
-            }</div>
-        ))}
-    </>
+        <div className="grid-container">
+            {[...grid.entries()].map(([key, pixel]) => (
+                <div 
+                    key={key} 
+                    className="pixel"
+                    style={{
+                        backgroundColor: `rgb(${pixel.r}, ${pixel.g}, ${pixel.b})`
+                    }} 
+                    onClick={()=>console.log(`clicked pixel ${pixel.x}, ${pixel.y}`)}
+                />
+            ))}
+        </div>
     )
 }
