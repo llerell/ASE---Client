@@ -17,12 +17,14 @@ function App() {
   const [r, setR] = useState(0);
   const [g, setG] = useState(0);
   const [b, setB] = useState(0);
-  const [selectedPixel, setSelectedPixel] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [lastUpdate, setLastUpdate] = useState(0);  
+  const lastUpdateRef = useRef(lastUpdate);
 
-
+  useEffect(() => {
+    lastUpdateRef.current = lastUpdate; 
+  }, [lastUpdate])
 
   useEffect(() => { 
       async function init() {
@@ -44,7 +46,7 @@ function App() {
 
       async function refreshGrid() {
         try {
-          updateGrid(setGrid, lastUpdate);
+          updateGrid(setGrid, lastUpdateRef.current);
           console.log("Successfully triggered data refresh");
 
           const time = await getLastUpdateTime();
@@ -86,23 +88,18 @@ function App() {
           >
             <Grid 
               grid={grid}
-              setSelectedPixel={setSelectedPixel}
               isLoading={isLoading}
+              color={{r, g, b}}
             />
           </TransformComponent>
         </TransformWrapper>
       </div>
 
-      <div>X: {selectedPixel?.y || 0}</div>
-      <div>Y: {selectedPixel?.x || 0}</div>
       
       <input type="number" placeholder="R" id="r-input" min="0" max="255" value={r} onChange={(e) => setR(parseInt(e.target.value) || 0)}/>
       <input type="number" placeholder="G" id="g-input" min="0" max="255" value={g} onChange={(e) => setG(parseInt(e.target.value) || 0)}/>
       <input type="number" placeholder="B" id="b-input" min="0" max="255" value={b} onChange={(e) => setB(parseInt(e.target.value) || 0)}/>
-      
-      <button onClick={() => changePixel(selectedPixel?.x, selectedPixel?.y, r, g, b)}>
-        Change Pixel
-      </button>
+
     </>
   )
 }

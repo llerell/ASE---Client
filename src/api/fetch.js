@@ -1,3 +1,4 @@
+/**
 function debugPixelOrder(jsonArray, label = "Pixel Order") {
     console.log(`--- ${label} ---`);
     
@@ -13,6 +14,7 @@ function debugPixelOrder(jsonArray, label = "Pixel Order") {
 
     console.table(tableData); 
 }
+**/
 
 export function getGrid(setGrid){
     try{
@@ -25,7 +27,6 @@ export function getGrid(setGrid){
             })
             .then(json => {
                 const gridMap = new Map();
-                debugPixelOrder(json, "Incoming Update Array");
                 json.forEach(pixel => {
                     gridMap.set(`${pixel.x},${pixel.y}`, pixel);
                 });
@@ -40,7 +41,7 @@ export function getGrid(setGrid){
 }
 
 export function changePixel(x, y, r, g, b){
-    if (x === undefined || y ===undefined) {
+    if (x === undefined || y === undefined) {
         console.error("No pixel selected!");
     }
     const baseUrl = import.meta.env.VITE_PIXELWAR_API_URL;
@@ -61,20 +62,19 @@ export function updateGrid(setGrid, lastUpdate){
     fetch(url)
     .then(res => res.json())
     .then(json => {
-        if (json.length === 0) return;
+        if (!Array.isArray(json) || json.length === 0) return;
         
         setGrid(prevGrid => {
             const newGrid = new Map(prevGrid);
+            let hasUpdates = false;
+
             json.forEach(item => {
-                if (!item.pixel) {
-                    console.warn("Received item without 'pixel' property:", item);
-                    return;
-                }
-                console.log(item);
-                const { x, y, r, g, b } = item.pixel;
-                newGrid.set(`${x}, ${y}`, item.pixel);
+                if (!item.pixel) return;
+                hasUpdates = true;
+                const { x, y } = item.pixel;
+                newGrid.set(`${x},${y}`, item.pixel);
             });
-            return newGrid;
+            return hasUpdates ? newGrid : prevGrid;
         });
     })
     .catch(err => console.error("Update failed: ", err));
@@ -82,15 +82,22 @@ export function updateGrid(setGrid, lastUpdate){
             
 
 export async function getLastUpdateTime(){
-        try{
+    try{
         const baseUrl = import.meta.env.VITE_PIXELWAR_API_URL;
-        const url = new URL("pixels/lastUpdateTime", baseUrl).href;
+        const url = `${baseUrl.replace(/\/$/, "")}/pixels/lastUpdateTime`;
         const response = await fetch(url);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const json = await response.json();
-        return json.lastUpdateTime || 0;
+
+        if (!response.ok) {
+            return 0;
+        }
+
+        const text = await response.text();
+ 
+        return parseInt(text.trim(), 10) || 0;
+
+
     } catch (e) {
-        console.error("Unexpected error in getLastUpdateTime:", e);
+        console.error("Error in getLastUpdateTime:", e);
         return 0;
     }
 }
