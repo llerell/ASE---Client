@@ -1,3 +1,19 @@
+function debugPixelOrder(jsonArray, label = "Pixel Order") {
+    console.log(`--- ${label} ---`);
+    
+    const tableData = jsonArray.map((item, index) => {
+        return {
+            arrayIndex: index,
+            pixelId: item?.id,
+            x: item?.x,
+            y: item?.y,
+            color: `rgb(${item?.r}, ${item?.g}, ${item?.b})`
+        };
+    });
+
+    console.table(tableData); 
+}
+
 export function getGrid(setGrid){
     try{
         const baseUrl = import.meta.env.VITE_PIXELWAR_API_URL;
@@ -9,6 +25,7 @@ export function getGrid(setGrid){
             })
             .then(json => {
                 const gridMap = new Map();
+                debugPixelOrder(json, "Incoming Update Array");
                 json.forEach(pixel => {
                     gridMap.set(`${pixel.x},${pixel.y}`, pixel);
                 });
@@ -23,75 +40,57 @@ export function getGrid(setGrid){
 }
 
 export function changePixel(x, y, r, g, b){
-    try{
-        const baseUrl = import.meta.env.VITE_PIXELWAR_API_URL;
-        const url = new URL("update", baseUrl).href;
-        fetch(url, {
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                id : null,
-                x: x,
-                y: y,
-                r: r,
-                g: g,
-                b: b
-            })
-        })
-        .then(response => {
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            return response.json();
-        })
-        .then(json => {
-            console.log("Pixel updated successfully:", json);
-        })
-        .catch(error => {
-            console.error("Error updating pixel:", error);
-        });
-    } catch (e) {
-        console.error("Unexpected error in changePixel:", e);
+    if (x === undefined || y ===undefined) {
+        console.error("No pixel selected!");
     }
+    const baseUrl = import.meta.env.VITE_PIXELWAR_API_URL;
+    const url = new URL("update", baseUrl).href;
+
+    fetch(url, {
+        method: "PUT",
+        headers: { "Content-type": "application/json" },
+        body: JSON.stringify({ x, y, r, g, b})
+    })
+    .catch(err => console.error("Update failed: ", err))
 }
 
-export function updateGrid(setGrid){
-    try{
-        const baseUrl = import.meta.env.VITE_PIXELWAR_API_URL;
-        const url = new URL("pixels/update", baseUrl).href;
-        fetch(url)
-            .then(response => {
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                // Return the parsed JSON promise
-                return response.json(); 
-            })
-            .then(json => {
-                console.log("Data received from /pixels/update:", json); 
-                
-                json.forEach(item => {
-                    // NOTE: If PixelRequest wraps the pixel inside a property called 'pixel', 
-                    // you will need to change item.x to item.pixel.x, etc.
-                    // Check your browser console to see the exact structure!
-                    
-                    const pX = item.pixel.x;
-                    const pY = item.pixel.y;
-                    const r = item.pixel.r;
-                    const g = item.pixel.g;
-                    const b = item.pixel.b;
+export function updateGrid(setGrid, lastUpdate){
+    const baseUrl = import.meta.env.VITE_PIXELWAR_API_URL;
+    const url = new URL(`pixels/updateFrom/${lastUpdate}`, baseUrl).href;
 
-                    console.log(`Updating pixel at (${pX}, ${pY}) with color rgb(${r}, ${g}, ${b})`);
-                    
-                    setGrid(prevGrid => {
-                        const newGrid = new Map(prevGrid);
-                        newGrid.set(`${pX},${pY}`, item.pixel); 
-                        return newGrid;
-                    });
-                });
-            })
-            .catch(error => {
-                console.error("Error fetching updated grid data:", error);
+    fetch(url)
+    .then(res => res.json())
+    .then(json => {
+        if (json.length === 0) return;
+        
+        setGrid(prevGrid => {
+            const newGrid = new Map(prevGrid);
+            json.forEach(item => {
+                if (!item.pixel) {
+                    console.warn("Received item without 'pixel' property:", item);
+                    return;
+                }
+                console.log(item);
+                const { x, y, r, g, b } = item.pixel;
+                newGrid.set(`${x}, ${y}`, item.pixel);
             });
+            return newGrid;
+        });
+    })
+    .catch(err => console.error("Update failed: ", err));
+}
+            
+
+export async function getLastUpdateTime(){
+        try{
+        const baseUrl = import.meta.env.VITE_PIXELWAR_API_URL;
+        const url = new URL("pixels/lastUpdateTime", baseUrl).href;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const json = await response.json();
+        return json.lastUpdateTime || 0;
     } catch (e) {
-        console.error("Unexpected error in updateGrid:", e);
+        console.error("Unexpected error in getLastUpdateTime:", e);
+        return 0;
     }
 }
