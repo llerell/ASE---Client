@@ -3,6 +3,7 @@ import './App.css'
 import { getGrid, updateGrid, changePixel, getLastUpdateTime } from './api/fetch.js'
 import { Grid } from './grid/grid.jsx'
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
+const baseUrl = import.meta.env.VITE_PIXELWAR_API_URL;
 
 const initialGrid = new Map();
 for (let i = 0; i < 100; i++) {
@@ -34,7 +35,7 @@ function App() {
   const login = () => {
     setError(null);
 
-    fetch("http://localhost:8080/auth/login", {
+    fetch(`${baseUrl.replace(/\/$/, "")}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password })
@@ -57,7 +58,7 @@ function App() {
   const register = () => {
     setError(null);
 
-    fetch("http://localhost:8080/auth/register", {
+    fetch(`${baseUrl.replace(/\/$/, "")}/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password })
