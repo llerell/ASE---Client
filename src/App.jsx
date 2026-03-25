@@ -2,106 +2,193 @@ import { useState, useEffect, useRef } from 'react'
 import './App.css'
 import { getGrid, updateGrid, changePixel, getLastUpdateTime } from './api/fetch.js'
 import { Grid } from './grid/grid.jsx'
-import { TransformWrapper,TransformComponent } from 'react-zoom-pan-pinch'
+import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
 
 const initialGrid = new Map();
 for (let i = 0; i < 100; i++) {
   for (let j = 0; j < 100; j++) {
     const key = `${j},${i}`;
     initialGrid.set(key, { x: j, y: i, r: 255, g: 255, b: 255 });
-    }
+  }
 }
 
 function App() {
+  const [token, setToken] = useState(localStorage.getItem("token"));
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+
   const [grid, setGrid] = useState(initialGrid);
   const [r, setR] = useState(0);
   const [g, setG] = useState(0);
   const [b, setB] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [lastUpdate, setLastUpdate] = useState(0);  
+  const [lastUpdate, setLastUpdate] = useState(0);
   const lastUpdateRef = useRef(lastUpdate);
 
   useEffect(() => {
-    lastUpdateRef.current = lastUpdate; 
-  }, [lastUpdate])
+    lastUpdateRef.current = lastUpdate;
+  }, [lastUpdate]);
 
-  useEffect(() => { 
-      async function init() {
-        setIsLoading(true);
-        setError(null); 
-        
-        try {
-          getGrid(setGrid);
-          console.log("Successfully triggered initial data load");
-        } catch (err) {
-          setError("Error loading data: " + err.message);
-        } finally {
-          setIsLoading(false);
-          const time = await getLastUpdateTime();
-          setLastUpdate(time);
-        }
+  const login = () => {
+    setError(null);
+
+    fetch("http://localhost:8080/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    })
+    .then(res => {
+      if (!res.ok) {
+        return res.json().then(err => {
+          throw new Error(err.message || "Login failed");
+        });
       }
+      return res.json();
+    })
+    .then(data => {
+      setToken(data.token);
+      localStorage.setItem("token", data.token);
+    })
+    .catch(err => setError(err.message));
+  };
 
-      async function refreshGrid() {
-        try {
-          updateGrid(setGrid, lastUpdateRef.current);
-          console.log("Successfully triggered data refresh");
+  const register = () => {
+    setError(null);
 
-          const time = await getLastUpdateTime();
-          setLastUpdate(time);
-          console.log("Updated last update time to: " + lastUpdateRef.current);
-        }
-        catch (err) {
-          console.log("Error refreshing data: " + err.message);
-        }
+    fetch("http://localhost:8080/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    })
+    .then(res => {
+      if (!res.ok) {
+        return res.json().then(err => {
+          throw new Error(err.message || "Register failed");
+        });
       }
+      return res.json();
+    })
+    .then(data => {
+      setToken(data.token);
+      localStorage.setItem("token", data.token);
+    })
+    .catch(err => setError(err.message));
+  };
 
-      init();
-      
-      // Rafraîchit toutes les 5 secondes
-      const intervalId = setInterval(refreshGrid, 5000); 
+  const logout = () => {
+    setToken(null);
+    localStorage.removeItem("token");
+  };
 
-      // Cleanup function to stop the interval when the component unmounts
-      return () => clearInterval(intervalId);
-  }, []); 
+  useEffect(() => {
+    if (!token) return;
+
+    async function init() {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        await getGrid(setGrid, token);
+      } catch (err) {
+        setError("Error loading data: " + err.message);
+      } finally {
+        setIsLoading(false);
+        const time = await getLastUpdateTime(token);
+        setLastUpdate(time);
+      }
+    }
+
+    async function refreshGrid() {
+      try {
+        await updateGrid(setGrid, lastUpdateRef.current, token);
+
+        const time = await getLastUpdateTime(token);
+        setLastUpdate(time);
+        console.log("Updated last update time to: " + lastUpdateRef.current);
+      } catch (err) {
+        console.log("Refresh error:", err.message);
+      }
+    }
+    init();
+    const intervalId = setInterval(refreshGrid, 5000);
+
+    return () => clearInterval(intervalId);
+  }, [token]);
+
+  if (!token) {
+    return (
+      <div>
+        <h2>{isRegistering ? "Register" : "Login"}</h2>
+
+        {error && <div style={{color: "red"}}>{error}</div>}
+
+        <input
+          placeholder="Username"
+          value={username}
+          onChange={e => setUsername(e.target.value)}
+        />
+
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+        />
+
+        {isRegistering ? (
+          <button onClick={register}>Register</button>
+        ) : (
+          <button onClick={login}>Login</button>
+        )}
+
+        <br /><br />
+
+        <button onClick={() => setIsRegistering(!isRegistering)}>
+          {isRegistering
+            ? "Already have an account ? Login"
+            : "Create an account"}
+        </button>
+      </div>
+    );
+  }
 
   return (
     <>
       <h1>Pixel War</h1>
-      
-      {/* Afficher éventuelles erreurs */}
-      {error && <div style={{color: 'red'}}>{error}</div>} 
+
+      <button onClick={logout}>Logout</button>
+
+      {error && <div style={{color: 'red'}}>{error}</div>}
+
       <div className="grid-viewport">
-        {/* This wrapper handles all the complex math for mouse wheel zooming and dragging! */}
-        <TransformWrapper 
-            initialScale={1} 
-            minScale={0.5} 
-            maxScale={20} /* How far in they can zoom */
-            centerOnInit={true}
-            limitToBounds={false}
-            disabled={isLoading}
+        <TransformWrapper
+          initialScale={1}
+          minScale={0.5}
+          maxScale={20}
+          centerOnInit={true}
+          limitToBounds={false}
+          disabled={isLoading}
         >
           <TransformComponent
-            wrapperStyle={{ width: '100%', height: '100%' }}  
+            wrapperStyle={{ width: '100%', height: '100%' }}
             contentStyle={{ width: '1000px', height: '1000px' }}
           >
-            <Grid 
+            <Grid
               grid={grid}
               isLoading={isLoading}
-              color={{r, g, b}}
+              color={{ r, g, b }}
             />
           </TransformComponent>
         </TransformWrapper>
       </div>
 
-      
-      <input type="number" placeholder="R" id="r-input" min="0" max="255" value={r} onChange={(e) => setR(parseInt(e.target.value) || 0)}/>
-      <input type="number" placeholder="G" id="g-input" min="0" max="255" value={g} onChange={(e) => setG(parseInt(e.target.value) || 0)}/>
-      <input type="number" placeholder="B" id="b-input" min="0" max="255" value={b} onChange={(e) => setB(parseInt(e.target.value) || 0)}/>
-
+      <input type="number" min="0" max="255" value={r} onChange={(e) => setR(parseInt(e.target.value) || 0)} />
+      <input type="number" min="0" max="255" value={g} onChange={(e) => setG(parseInt(e.target.value) || 0)} />
+      <input type="number" min="0" max="255" value={b} onChange={(e) => setB(parseInt(e.target.value) || 0)} />
     </>
-  )
+  );
 }
 
-export default App
+export default App;
