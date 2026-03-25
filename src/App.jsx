@@ -36,7 +36,6 @@ function App() {
           console.log("Successfully triggered initial data load");
         } catch (err) {
           setError("Error loading data: " + err.message);
-          console.log("Error loading data: " + err.message);
         } finally {
           setIsLoading(false);
           const time = await getLastUpdateTime();
@@ -51,6 +50,7 @@ function App() {
 
           const time = await getLastUpdateTime();
           setLastUpdate(time);
+          console.log("Updated last update time to: " + lastUpdateRef.current);
         }
         catch (err) {
           console.log("Error refreshing data: " + err.message);
