@@ -3,6 +3,8 @@ import './App.css'
 import { getGrid, updateGrid, changePixel, getLastUpdateTime } from './api/fetch.js'
 import { Grid } from './grid/grid.jsx'
 import { TransformWrapper,TransformComponent } from 'react-zoom-pan-pinch'
+import { ColorPicker, useColor } from "react-color-palette";
+import "react-color-palette/css";
 
 const initialGrid = new Map();
 for (let i = 0; i < 100; i++) {
@@ -21,6 +23,9 @@ function App() {
   const [error, setError] = useState(null);
   const [lastUpdate, setLastUpdate] = useState(0);  
   const lastUpdateRef = useRef(lastUpdate);
+
+  const [color, setColor] = useColor("rgb(86 30 203)");
+
 
   useEffect(() => {
     lastUpdateRef.current = lastUpdate; 
@@ -95,10 +100,13 @@ function App() {
         </TransformWrapper>
       </div>
 
-      
-      <input type="number" placeholder="R" id="r-input" min="0" max="255" value={r} onChange={(e) => setR(parseInt(e.target.value) || 0)}/>
-      <input type="number" placeholder="G" id="g-input" min="0" max="255" value={g} onChange={(e) => setG(parseInt(e.target.value) || 0)}/>
-      <input type="number" placeholder="B" id="b-input" min="0" max="255" value={b} onChange={(e) => setB(parseInt(e.target.value) || 0)}/>
+      <ColorPicker hideInput={true} width={100} color={color} onChange={(res) => {
+        setColor(res)
+        setR(res.rgb.r)
+        setG(res.rgb.g)
+        setB(res.rgb.b)
+
+      }} />
 
     </>
   )
