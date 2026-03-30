@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import './App.css'
 import { getGrid, updateGrid, changePixel, getLastUpdateTime } from './api/fetch.js'
 import { Grid } from './grid/grid.jsx'
-import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
+
 const baseUrl = import.meta.env.VITE_PIXELWAR_API_URL;
 import { TransformWrapper,TransformComponent } from 'react-zoom-pan-pinch'
 import { ColorPicker, useColor } from "react-color-palette";
