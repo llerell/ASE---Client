@@ -190,7 +190,10 @@ function App() {
           </TransformComponent>
         </TransformWrapper>
       </div>
-
+      <input type="number" placeholder="R" id="r-input" min="0" max="255" value={r} onChange={(e) => setR(parseInt(e.target.value) || 0)}/>
+      <input type="number" placeholder="G" id="g-input" min="0" max="255" value={g} onChange={(e) => setG(parseInt(e.target.value) || 0)}/>
+      <input type="number" placeholder="B" id="b-input" min="0" max="255" value={b} onChange={(e) => setB(parseInt(e.target.value) || 0)}/>
+      
       <ColorPicker hideInput={true} width={100} color={color} onChange={(res) => {
         setColor(res)
         setR(res.rgb.r)
@@ -198,7 +201,7 @@ function App() {
         setB(res.rgb.b)
 
       }} />
-
+  
     </>
   );
 }
