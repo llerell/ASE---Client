@@ -109,9 +109,9 @@ function App() {
 
     async function refreshGrid() {
       try {
-        await updateGrid(setGrid, lastUpdateRef.current, token);
-
         const time = await getLastUpdateTime(token);
+        if (time <= lastUpdateRef.current) return;
+        await updateGrid(setGrid, lastUpdateRef.current, token);
         setLastUpdate(time);
         console.log("Updated last update time to: " + lastUpdateRef.current);
       } catch (err) {
